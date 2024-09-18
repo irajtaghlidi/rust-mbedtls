@@ -35,6 +35,15 @@ fn main() {
     }
     b.compile("librust-mbedtls-platform-support.a");
     // Force correct link order for mbedtls_printf
+
+    // println!("cargo:rustc-link-search=native={}", "${pwd}/../../../../../execroot/_main/bazel-out/k8-fastbuild/bin/external/crate_index__mbedtls-sys-auto-2.28.7/_bs.out_dir/lib");
+    
+    // println!("cargo:rustc-link-search=native={}", "${pwd}/../../crate_index__mbedtls-sys-auto-2.28.7/_bs.out_dir/lib");
+    // println!("cargo:rustc-link-search=native={}", "../../crate_index__mbedtls-sys-auto-2.28.7/_bs.out_dir/lib");
+
+    // println!("cargo:rustc-link-search=native={}", "${pwd}/../crate_index__mbedtls-sys-auto-2.28.7/_bs.out_dir/lib");
+    // println!("cargo:rustc-link-search=native={}", "../crate_index__mbedtls-sys-auto-2.28.7/_bs.out_dir/lib");
+    
     println!("cargo:rustc-link-lib=static=mbedtls");
     println!("cargo:rustc-link-lib=static=mbedx509");
     println!("cargo:rustc-link-lib=static=mbedcrypto");

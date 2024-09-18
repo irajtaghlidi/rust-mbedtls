@@ -13,6 +13,7 @@ use std::hash::{Hash, Hasher};
 use rustc_version::Channel;
 use std::env;
 
+<<<<<<< HEAD
 /// Retrieves or generates a metadata value used for symbol name mangling to ensure unique C symbols.
 /// When building with Cargo, the metadata value is extracted from the OUT_DIR environment variable.
 /// For Bazel builds, this method generate the suffix by hashing part of the crate OUT_DIR,
@@ -40,10 +41,35 @@ fn get_compilation_symbol_suffix() -> String {
             p.hash(&mut hasher);
         }
         return format!("{:016x}", hasher.finish());
+=======
+/// Return the crate hash that Cargo will be passing to `rustc -C metadata=`.
+// If there's a panic in this code block, that means Cargo's way of running the
+// build script has changed, and this code should be updated to handle the new
+// case.
+fn get_compilation_metadata_hash() -> String {
+    let out_dir: std::path::PathBuf = std::env::var_os("OUT_DIR").unwrap().into();
+    let mut out_dir_it = out_dir.iter().rev();
+    let next = out_dir_it.next().unwrap();
+
+    if next == "out" {
+        // Do the same thing as before
+        let crate_ = out_dir_it.next().unwrap().to_string_lossy();
+        assert!(crate_.starts_with("mbedtls-"));
+        return crate_[8..].to_owned();
+    } else if next == "_bs.out_dir" {
+        let compiler_version = rustc_version::version().expect("Failed to get rustc version").to_string();
+        let version = env!("CARGO_PKG_VERSION");
+        let versioned_string = format!("mbedtls_{}", version);
+        let metadata = vec!["".to_string()];
+        let stable_crate_id = crate_id::StableCrateId::new(&versioned_string, false, metadata, compiler_version);
+
+        return stable_crate_id.to_string();
+>>>>>>> bazel compatible
     } else {
         panic!("unexpected OUT_DIR format: {}", out_dir.display());
     }
 }
+
 
 fn main() {
     // used for configuring rustdoc attrs for now
@@ -53,6 +79,7 @@ fn main() {
     let symbol_suffix = get_compilation_symbol_suffix();
     println!("cargo:rustc-env=RUST_MBEDTLS_SYMBOL_SUFFIX={}", symbol_suffix);
     println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
+
 
     let env_components = env::var("DEP_MBEDTLS_PLATFORM_COMPONENTS").unwrap();
     let mut sys_platform_components = HashMap::<_, HashSet<_>>::new();
@@ -73,8 +100,9 @@ fn main() {
         .or(env::var("DEP_MBEDTLS_CONFIG_H"))
         .unwrap();
     println!("Defining MBEDTLS_CONFIG_FILE to be \"{}\"", config_file);
-    b.define("MBEDTLS_CONFIG_FILE", Some(format!(r#""{}""#, config_file).as_str()));
-    b.define("RUST_MBEDTLS_SYMBOL_SUFFIX", Some(symbol_suffix.as_str()));
+    b.define("MBEDTLS_CONFIG_FILE",
+             Some(format!(r#""{}""#, config_file).as_str()));
+    b.define("RUST_MBEDTLS_METADATA_HASH", Some(metadata_hash.as_str()));
 
     b.file("src/mbedtls_malloc.c");
     if sys_platform_components
